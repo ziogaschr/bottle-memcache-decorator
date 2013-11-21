@@ -1,0 +1,12 @@
+language: python
+python:
+  - "2.7"
+  - "3.3"
+# command to install dependencies
+install: "pip install -r requirements.txt --use-mirrors"
+services:
+  - memcached # will start memcached
+# command to build & run tests
+script: "python setup.py develop && nosetests"
+notifications:
+  email: true
