@@ -29,12 +29,15 @@ class MemcacheDecoratorPluginTest(unittest.TestCase):
 
         self._request_path('/flush_memcache')
 
-    def _request_path(self, path, query_string='', method='GET'):
+    def _request_path(self, path, query_string='', method='GET', headers=dict()):
         req = {
+            'REQUEST_METHOD': method,
             'PATH_INFO': path,
-            'QUERY_STRING': query_string,
-            'REQUEST_METHOD': method
+            'QUERY_STRING': query_string
         }
+        for header in headers:
+            req[header]= headers[header]
+
         return self.app(req, lambda x, y: None)
 
     def _install_plugin(self, *args, **kwargs):
@@ -101,6 +104,29 @@ class MemcacheDecoratorPluginTest(unittest.TestCase):
         self.assertNotEqual(res1, res2)
         self.assertEqual(res1, self.results['a'].encode())
         self.assertEqual(res2, self.results['b'].encode())
+
+    def test_set_request_headers(self):
+        """
+        Check if key stored in memcache is unique
+        based on request headers that can affect the response
+        """
+
+        @self.app.get('/test_erq_headers')
+        def test(mc):
+            if 'range' in request.headers:
+                start, end = request.headers['range'].split('-')
+
+            self.results[start] = "%s:%f" % (end, time.time())
+            return self.results[start]
+
+        self._install_plugin()
+
+        res1 = self._request_path('/test_erq_headers', headers={'HTTP_RANGE':'1-2'})[0]
+        res2 = self._request_path('/test_erq_headers', headers={'HTTP_RANGE':'10-20'})[0]
+
+        self.assertNotEqual(res1, res2)
+        self.assertEqual(res1, self.results['1'].encode())
+        self.assertEqual(res2, self.results['10'].encode())
 
     def test_expire_time(self):
         """Test router argument set for memcache key expire time"""

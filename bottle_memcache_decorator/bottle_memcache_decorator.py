@@ -56,6 +56,8 @@ if not hasattr(bottle, 'PluginError'):
         pass
     bottle.PluginError = PluginError
 
+HEADERS_FOR_UNIQUE_NAMING = ['range']
+
 class MemcacheDecoratorPlugin(object):
     """
     Auto Memcache decorator
@@ -133,6 +135,11 @@ class MemcacheDecoratorPlugin(object):
             # consider the query items
             for items in request.query.items():
                 url_params[items[0]] = items[1]
+
+            # consider some headers that may affect the result
+            for header in HEADERS_FOR_UNIQUE_NAMING:
+                if header in request.headers:
+                    url_params[header] = request.headers[header]
 
             # get a unique memcache key based on the user request
             if url_params:
